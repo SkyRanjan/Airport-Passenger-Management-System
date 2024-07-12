@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?><sqlb_project><db path="C:/Users/aditi/OneDrive/Desktop/Airport Passenger Management/airport_management.db" readonly="0" foreign_keys="1" case_sensitive_like="0" temp_store="0" wal_autocheckpoint="1000" synchronous="2"/><attached/><window><main_tabs open="structure browser pragmas query" current="3"/></window><tab_structure><column_width id="0" width="300"/><column_width id="1" width="0"/><column_width id="2" width="150"/><column_width id="3" width="2821"/><column_width id="4" width="0"/><expanded_item id="0" parent="1"/><expanded_item id="1" parent="1"/><expanded_item id="2" parent="1"/><expanded_item id="3" parent="1"/></tab_structure><tab_browse><current_table name="4,5:mainAdmin"/><default_encoding codec=""/><browse_table_settings><table schema="main" name="Admin" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_"><sort/><column_widths><column index="1" value="202"/><column index="2" value="141"/><column index="3" value="154"/><column index="4" value="167"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table></browse_table_settings></tab_browse><tab_sql><sql name="SQL 1">-- Inserting data into Terminal_Service table
+INSERT INTO Terminal_Service (Service_name, Service_charges, Available_time, Status)
+VALUES
+('Cleaning', 100.0, '09:00-18:00', 'Available'),
+('Catering', 200.0, '10:00-20:00', 'Available'),
+('Security', 150.0, '24/7', 'Available'),
+('Maintenance', 250.0, '08:00-22:00', 'Available'),
+('Information Desk', 50.0, '06:00-23:00', 'Available');
+
+-- Inserting data into Admin table
+INSERT INTO Admin (Employee_number, Name, Date_of_birth, Phone_number)
+VALUES
+('EMP001', 'John Doe', '1980-01-01', '1234567890'),
+('EMP002', 'Jane Smith', '1985-02-02', '0987654321'),
+('EMP003', 'Emma Johnson', '1990-03-03', '1231231231'),
+('EMP004', 'Chris Brown', '1975-04-04', '4564564564'),
+('EMP005', 'Olivia Davis', '1988-05-05', '7897897897');
+
+-- Inserting data into Passenger table
+INSERT INTO Passenger (Aadhar_number, Name, Phone_number, Age, Gate_number)
+VALUES
+('AAD001', 'Alice Johnson', '1111111111', 30, 'G1'),
+('AAD002', 'Bob Brown', '2222222222', 25, 'G2'),
+('AAD003', 'Charlie Black', '3333333333', 35, 'G3'),
+('AAD004', 'David White', '4444444444', 28, 'G4'),
+('AAD005', 'Eve Green', '5555555555', 22, 'G5');
+
+
+-- Inserting data into Flight table
+INSERT INTO Flight (Flight_number, Airline_name, Aeroplane_model, Total_passengers, Total_weight, Gate_number, ETA, ETD, Date, Status)
+VALUES
+('FL001', 'Airline1', 'Boeing737', 180, 15000.0, 'G1', '12:00', '14:00', '2023-06-01', 'On Time'),
+('FL002', 'Airline2', 'AirbusA320', 160, 14000.0, 'G2', '13:00', '15:00', '2023-06-01', 'Delayed'),
+('FL003', 'Airline3', 'Boeing747', 200, 18000.0, 'G3', '14:00', '16:00', '2023-06-01', 'On Time'),
+('FL004', 'Airline4', 'AirbusA380', 220, 20000.0, 'G4', '15:00', '17:00', '2023-06-01', 'Delayed'),
+('FL005', 'Airline5', 'Boeing777', 240, 22000.0, 'G5', '16:00', '18:00', '2023-06-01', 'On Time');
+
+-- Creating the Archive table
+CREATE TABLE IF NOT EXISTS Archive (
+    Archive_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+    Passenger_ID TEXT,
+    Luggage_ID INTEGER,
+    Service_ID INTEGER,
+    Flight_ID TEXT,
+    Year INTEGER,
+    FOREIGN KEY (Passenger_ID) REFERENCES Passenger(Aadhar_number),
+    FOREIGN KEY (Luggage_ID) REFERENCES Luggage(Luggage_id),
+    FOREIGN KEY (Service_ID) REFERENCES Terminal_Service(Service_id),
+    FOREIGN KEY (Flight_ID) REFERENCES Flight(Flight_number)
+);
+
+-- Query to find the total number of passengers archived per year having more than one archive entry
+SELECT Year, COUNT(*) AS Total_Passengers
+FROM Archive
+GROUP BY Year
+HAVING COUNT(*) &gt; 1;
+
+-- Query to get the list of archived flights ordered by year
+SELECT Flight_ID, Year
+FROM Archive
+ORDER BY Year;
+
+-- Query to get archived passenger details along with their flight details using INNER JOIN
+SELECT p.Aadhar_number, p.Name, f.Flight_number, f.Airline_name
+FROM Archive a
+INNER JOIN Passenger p ON a.Passenger_ID = p.Aadhar_number
+INNER JOIN Flight f ON a.Flight_ID = f.Flight_number;
+
+-- Query to get all archived passengers and their luggage details using LEFT JOIN
+SELECT p.Aadhar_number, p.Name, l.Luggage_id, l.Status
+FROM Archive a
+LEFT JOIN Passenger p ON a.Passenger_ID = p.Aadhar_number
+LEFT JOIN Luggage l ON a.Luggage_ID = l.Luggage_id;
+
+-- Query to find archived passengers who have more than one bag or total weight greater than 12 kg
+SELECT a.Passenger_ID, l.Number_of_bags, l.Total_weight
+FROM Archive a
+INNER JOIN Luggage l ON a.Luggage_ID = l.Luggage_id
+WHERE l.Number_of_bags &gt; 1 OR l.Total_weight &gt; 12.0;
+
+-- Query to calculate the average weight per archived passenger
+SELECT Flight_ID, AVG(Total_weight / Total_passengers) AS Avg_Weight_Per_Passenger
+FROM Archive a
+INNER JOIN Flight f ON a.Flight_ID = f.Flight_number
+GROUP BY Flight_ID;
+
+-- Query to find archived passengers whose name contains 'Alice'
+SELECT p.Aadhar_number, p.Name, p.Phone_number
+FROM Archive a
+INNER JOIN Passenger p ON a.Passenger_ID = p.Aadhar_number
+WHERE p.Name LIKE '%Alice%';
+
+-- SQLite does not support to_char or extract directly.
+-- Query to get the year from the archive date
+SELECT Archive_ID, Year
+FROM Archive;
+
+-- Query to find archived flights between specific years
+SELECT Flight_ID, Year
+FROM Archive
+WHERE Year BETWEEN 2022 AND 2023;
+
+-- Query to find archived passengers whose Aadhar_number is in a specified list
+SELECT Passenger_ID
+FROM Archive
+WHERE Passenger_ID IN ('100000000', '200000000');
+
+-- Query to find archived passengers whose year is not between 2020 and 2022
+SELECT Passenger_ID, Year
+FROM Archive
+WHERE Year NOT BETWEEN 2020 AND 2022;
+
+-- SQLite does not support INTERSECT and EXCEPT directly, subqueries.
+-- Query to find passengers who have luggage archived
+SELECT Passenger_ID FROM Archive
+WHERE Luggage_ID IS NOT NULL;
+
+-- Query to find passengers who do not have luggage archived
+SELECT Passenger_ID FROM Archive
+WHERE Luggage_ID IS NULL;
+
+-- Query to find archived passengers who have Loaded luggage
+SELECT a.Passenger_ID, p.Name
+FROM Archive a
+INNER JOIN Passenger p ON a.Passenger_ID = p.Aadhar_number
+WHERE EXISTS (SELECT 1 FROM Luggage l WHERE a.Luggage_ID = l.Luggage_id AND l.Status = 'Loaded');
+
+-- Query to find archived flights where all passengers have luggage archived
+SELECT Flight_ID
+FROM Archive a
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM Passenger_Flight pf
+    LEFT JOIN Luggage l ON pf.Aadhar_number = l.Aadhar_number
+    WHERE pf.Flight_number = a.Flight_ID AND l.Luggage_id IS NULL
+);
+
+-- Query to find archived flights where all passengers have luggage archived
+SELECT Flight_ID
+FROM Archive a
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM Passenger_Flight pf
+    LEFT JOIN Luggage l ON pf.Aadhar_number = l.Aadhar_number
+    WHERE pf.Flight_number = a.Flight_ID AND l.Luggage_id IS NULL
+);
+
+select * from Flight;</sql><current_tab id="0"/></tab_sql></sqlb_project>
